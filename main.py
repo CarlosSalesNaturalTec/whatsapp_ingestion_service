@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import shutil
 import uuid
@@ -21,6 +22,22 @@ app = FastAPI(
     title="WhatsApp Ingestion Service",
     description="Serviço para processar uploads de arquivos de exportação de conversas do WhatsApp.",
     version="1.0.0"
+)
+
+# --- Configuração do CORS ---
+# Pega a URL do frontend da variável de ambiente, com um fallback para desenvolvimento local
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+origins = [
+    FRONTEND_URL,
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Permite todos os métodos
+    allow_headers=["*"], # Permite todos os cabeçalhos
 )
 
 # Variáveis de ambiente (carregadas no início)
