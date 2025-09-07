@@ -14,7 +14,7 @@ O serviço expõe um único endpoint que recebe um arquivo `.zip` contendo a exp
 ## 2. Arquitetura e Fluxo
 
 1.  **Endpoint de Upload:** `POST /ingest/upload` recebe o arquivo `.zip`.
-2.  **Validação e Armazenamento Temporário:** O arquivo é validado e salvo em um diretório temporário no ambiente de execução (Cloud Run).
+2.  **Validação e Armazenamento Temporário:** O arquivo é validado e salvo em um diretório temporário no ambiente de execução.
 3.  **Tarefa em Background:** Uma tarefa assíncrona é iniciada para:
     *   Descompactar o arquivo.
     *   Localizar e parsear o arquivo de texto (`.txt`) para extrair mensagens, autores, timestamps e metadados.
@@ -53,14 +53,14 @@ Crie um arquivo `.env` na raiz do projeto a partir do `.env.example` e configure
 
 -   `GCP_PROJECT_ID`: ID do seu projeto no Google Cloud.
 -   `GCS_BUCKET_NAME`: Nome do bucket no Cloud Storage onde as mídias serão armazenadas. O padrão sugerido é `[GCP_PROJECT_ID]-whatsapp-media`.
+-   `FRONTEND_URL`: URL da aplicação frontend para configuração do CORS. Para desenvolvimento local, o padrão é `http://localhost:3000`.
 
-## 5. Execução Local
+## 5. Execução Local (Ambiente Windows)
 
 1.  **Crie e ative um ambiente virtual:**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # Linux/macOS
-    .\venv\Scripts\activate    # Windows
+    .\venv\Scripts\activate
     ```
 
 2.  **Instale as dependências:**
@@ -68,14 +68,14 @@ Crie um arquivo `.env` na raiz do projeto a partir do `.env.example` e configure
     pip install -r requirements.txt
     ```
 
-3.  **Autentique-se no Google Cloud (se necessário):**
+3.  **Autentique-se no Google Cloud (necessário para acesso ao Firestore e GCS):**
     ```bash
     gcloud auth application-default login
     ```
 
-4.  **Inicie o servidor:**
+4.  **Inicie o servidor de desenvolvimento:**
     ```bash
-    uvicorn main:app --reload
+    uvicorn main:app --reload --port 8000
     ```
     O serviço estará disponível em `http://127.0.0.1:8000`. A documentação interativa da API (Swagger UI) estará em `http://127.0.0.1:8000/docs`.
 
@@ -93,8 +93,8 @@ Crie um arquivo `.env` na raiz do projeto a partir do `.env.example` e configure
       --platform managed \
       --region [SUA_REGIAO] \
       --allow-unauthenticated \
-      --set-env-vars="GCP_PROJECT_ID=[GCP_PROJECT_ID],GCS_BUCKET_NAME=[GCS_BUCKET_NAME]"
-      --port 8080
+      --set-env-vars="GCP_PROJECT_ID=[GCP_PROJECT_ID],GCS_BUCKET_NAME=[GCS_BUCKET_NAME],FRONTEND_URL=[URL_DO_FRONTEND_EM_PRODUCAO]" \
+      --port 8000
     ```
     **Nota:** `--allow-unauthenticated` é usado para simplificar. Em um ambiente de produção real, você deve proteger este endpoint, por exemplo, usando o API Gateway ou a autenticação do Cloud Run com IAP.
 
