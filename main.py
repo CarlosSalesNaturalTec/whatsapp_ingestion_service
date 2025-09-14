@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 
 from parser import parse_whatsapp_chat
 from firestore_service import process_and_save_messages, log_system_event
-from gcs_service import upload_media_to_gcs
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -62,15 +61,15 @@ def background_processing_task(temp_dir: str, original_filename: str):
     try:
         logging.info(f"Iniciando processamento em background para: {temp_dir}")
 
-        # 1. Encontrar o arquivo .txt
+        # 1. Encontrar o arquivo .txt e mapear arquivos de mídia
         txt_file_path = None
-        media_files = []
+        media_files_map = {} # Mapeia filename -> local_path
         for root, _, files in os.walk(temp_dir):
             for file in files:
                 if file.endswith('.txt'):
                     txt_file_path = os.path.join(root, file)
                 elif not file.startswith('.'): # Ignorar arquivos ocultos
-                    media_files.append(os.path.join(root, file))
+                    media_files_map[file] = os.path.join(root, file)
         
         if not txt_file_path:
             raise ValueError("Nenhum arquivo .txt encontrado no .zip.")
@@ -84,25 +83,16 @@ def background_processing_task(temp_dir: str, original_filename: str):
 
         logging.info(f"Grupo '{group_name}' parseado com {len(parsed_messages)} mensagens.")
 
-        # 3. Processar e fazer upload de mídias
-        media_metadata_map = {}
-        if media_files:
-            logging.info(f"Encontradas {len(media_files)} mídias para processar.")
-            for media_path in media_files:
-                original_media_filename = os.path.basename(media_path)
-                gcs_uri, file_hash, media_type = upload_media_to_gcs(media_path, GCS_BUCKET_NAME)
-                if gcs_uri:
-                    media_metadata_map[original_media_filename] = {
-                        "gcs_uri": gcs_uri,
-                        "hash_sha256": file_hash,
-                        "media_type": media_type
-                    }
-            logging.info("Processamento de mídias concluído.")
-
-        # 4. Salvar mensagens e metadados no Firestore
-        process_and_save_messages(group_name, parsed_messages, media_metadata_map)
+        # 3. Salvar mensagens no Firestore e fazer upload de mídias no GCS
+        # A lógica de upload foi movida para dentro de `process_and_save_messages`
+        process_and_save_messages(
+            group_name=group_name,
+            messages=parsed_messages,
+            media_files_map=media_files_map,
+            gcs_bucket_name=GCS_BUCKET_NAME
+        )
         
-        logging.info("Todas as mensagens foram salvas no Firestore com sucesso.")
+        logging.info("Todas as mensagens foram processadas e salvas no Firestore com sucesso.")
         log_system_event(
             task_id,
             source='whatsapp_ingestion',
@@ -119,7 +109,7 @@ def background_processing_task(temp_dir: str, original_filename: str):
             status='error'
         )
     finally:
-        # 5. Limpar o diretório temporário
+        # 4. Limpar o diretório temporário
         shutil.rmtree(temp_dir)
         logging.info(f"Diretório temporário {temp_dir} limpo.")
 
