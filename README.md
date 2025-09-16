@@ -102,4 +102,4 @@ Crie um arquivo `.env` na raiz do projeto a partir do `.env.example` e configure
 
 -   **Frontend:** O frontend irá consumir o endpoint `/ingest/upload` para enviar os arquivos `.zip` selecionados pelo usuário.
 -   **API NLP:** O módulo de NLP irá monitorar a sub-coleção `whatsapp_groups/{group_id}/messages` por documentos com `nlp_status: 'pending'` para realizar as análises de texto.
--   **Media Analysis:** Um futuro módulo de análise de mídia irá monitorar a mesma coleção por documentos com `media_analysis_status: 'pending'`.
+-   **Media Analysis:** Após uma mensagem com mídia ser salva no Firestore, a nova Cloud Function `cloud_function_trigger_media_from_firestore` é acionada. Ela envia uma notificação para o serviço `media_analysis`, que então inicia o processamento da mídia referenciada no campo `gcs_uri`.
